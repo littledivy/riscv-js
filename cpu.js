@@ -92,6 +92,7 @@ class CPU {
 
     const opcode = instruction & 0x7f;
     const funct3 = (instruction >> 12) & 0x7;
+    const funct7 = (instruction >> 25) & 0x7f;
     const rd = (instruction >> 7) & 0x1f;
     const rs1 = (instruction >> 15) & 0x1f;
 
@@ -108,7 +109,7 @@ class CPU {
           }
           case 0x1: { // slli
             const imm = (instruction & 0xfff00000) >> 20;
-            let shamt = imm & 0x3f;
+            const shamt = imm & 0x3f;
             this.#regs[rd] = this.#regs[rs1] << shamt;
             this.debug("SLII");
             break;
@@ -127,7 +128,15 @@ class CPU {
             break;
           }
           case 0x5: {
-            throw new TypeError("not implemented");
+            const imm = (instruction & 0xfff00000) >> 20;
+            const shamt = imm & 0x3f;
+            switch (funct7 >> 1) {
+              case 0x0: // srai
+              case 0x1: // srai
+                this.#regs[rd] = this.#regs[rs1] >>> shamt;
+                break;
+            }
+            break;
           }
           case 0x6: { // ori
             const imm = (instruction & 0xfff00000) >> 20;
@@ -166,6 +175,7 @@ class CPU {
         this.#regs[rd] = this.#pc;
         this.#pc += immJ - 4;
         this.debug("JAL");
+        break;
       }
       // imm[11:0] | rs1 | 000 | rd | 1100111
       case 0x67: { // jalr
@@ -174,6 +184,23 @@ class CPU {
         this.#pc = this.#regs[rs1] + imm & 0xfffffffe;
         this.#regs[rd] = tpc;
         this.debug("JALR");
+        break;
+      }
+      case 0x0f: // fence
+       {
+        break;
+      }
+      // TODO: Implement fetch(u8)
+      case 0x03: {
+        const imm = (instruction >> 20);
+        const addr = this.#regs[rs1] + imm;
+        switch (funct3) {
+          case 0x0: { // lb
+            this.#regs[rd] = this.fetch();
+            this.debug("LW");
+            break;
+          }
+        }
       }
     }
   }
