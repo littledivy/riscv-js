@@ -158,6 +158,23 @@ class CPU {
         this.debug("AUIPC");
         break;
       }
+      // imm[20|10:1|11|19:12] | rd | 1101111
+      case 0x6f: { // jal
+        const immJ = (instruction & 0x80000000) >> 11 |
+          (instruction & 0xff000) |
+          ((instruction >> 9) & 0x800) | ((instruction >> 20) & 0x7fe);
+        this.#regs[rd] = this.#pc;
+        this.#pc += immJ - 4;
+        this.debug("JAL");
+      }
+      // imm[11:0] | rs1 | 000 | rd | 1100111
+      case 0x67: { // jalr
+        const imm = (instruction && 0xfff00000) >> 20;
+        const tpc = this.#pc;
+        this.#pc = this.#regs[rs1] + imm & 0xfffffffe;
+        this.#regs[rd] = tpc;
+        this.debug("JALR");
+      }
     }
   }
 }
